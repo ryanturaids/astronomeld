@@ -6,55 +6,62 @@ document.addEventListener("DOMContentLoaded", function () {
     Composite = Matter.Composite,
     Mouse = Matter.Mouse,
     MouseConstraint = Matter.MouseConstraint,
-    Events = Matter.Events,
-    Common = Matter.Common;
+    Events = Matter.Events;
 
   const canvasContainer = document.getElementById("canvas");
 
-  // create an engine
+  // Create an engine
   const engine = Engine.create();
 
-  // create a renderer
+  // Create a renderer
   const render = Render.create({
     element: canvasContainer,
     engine: engine,
     options: {
-      width: 300, // specify width of render area
-      height: 600, // specify height of render area
-      background: "#222", // dark blue background color
+      width: 300,
+      height: 600,
+      background: "#222",
       wireframes: false,
     },
   });
 
-  // collision categories
+  // Collision categories
   const defaultCategory = 0x0001;
   const topBoxCategory = 0x0002;
 
-  // create the box with an open top and a top box for spawning balls
-  const boxLeft = Bodies.rectangle(0, 400, 20, 400, { isStatic: true }); // left
-  const boxRight = Bodies.rectangle(300, 400, 20, 400, { isStatic: true }); // right
-  const boxBottom = Bodies.rectangle(150, 600, 300, 20, { isStatic: true }); // bottom
+  // Create the box with an open top and a top box for spawning balls
+  const boxLeft = Bodies.rectangle(0, 400, 20, 400, {
+    isStatic: true,
+    render: { fillStyle: "gray" },
+  });
+
+  const boxRight = Bodies.rectangle(300, 400, 20, 400, {
+    isStatic: true,
+    render: { fillStyle: "gray" },
+  });
+
+  const boxBottom = Bodies.rectangle(150, 600, 300, 20, {
+    isStatic: true,
+    render: { fillStyle: "gray" },
+  });
 
   const topBoxTop = Bodies.rectangle(150, 50, 300, 100, {
     isStatic: true,
-    collisionFilter: {
-      category: topBoxCategory,
-    },
+    collisionFilter: { category: topBoxCategory },
+    render: { fillStyle: "gray" },
   });
 
-  // add all of the bodies to the world
+  // Add all of the bodies to the world
   Composite.add(engine.world, [boxLeft, boxRight, boxBottom, topBoxTop]);
 
-  // run the renderer
+  // Run the renderer
   Render.run(render);
 
-  // create runner
+  // Create runner
   const runner = Runner.create();
-
-  // run the engine
   Runner.run(runner, engine);
 
-  // add mouse and touch control
+  // Add mouse and touch control
   const mouse = Mouse.create(render.canvas);
   const mouseConstraint = MouseConstraint.create(engine, {
     mouse: mouse,
@@ -62,10 +69,9 @@ document.addEventListener("DOMContentLoaded", function () {
   Composite.add(engine.world, mouseConstraint);
   render.mouse = mouse;
 
-  // handle both mouse click and touch events to spawn a ball
+  // Handle both mouse click and touch events to spawn a ball
   function spawnBall(x, y) {
     if (y <= 100) {
-      // check if the click is inside the top box area
       const sizes = [20, 35, 50];
       const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
       const newBall = createBall(x, y, randomSize);
@@ -73,22 +79,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // add event listener for clicking to spawn a ball
+  // Add event listener for clicking to spawn a ball
   render.canvas.addEventListener("mousedown", function (event) {
     spawnBall(event.offsetX, event.offsetY);
   });
 
-  // add event listener for touch to spawn a ball
+  // Add event listener for touch to spawn a ball
   render.canvas.addEventListener("touchstart", function (event) {
-    event.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
+    event.preventDefault();
     const touch = event.touches[0];
-    spawnBall(
-      touch.clientX - canvasContainer.getBoundingClientRect().left,
-      touch.clientY - canvasContainer.getBoundingClientRect().top
-    );
+    const rect = canvasContainer.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    spawnBall(touchX, touchY);
   });
 
-  // function to get color based on size
+  // Function to get color based on size
   function getColor(radius) {
     if (radius <= 20) return "red";
     if (radius <= 35) return "orange";
@@ -100,63 +106,49 @@ document.addEventListener("DOMContentLoaded", function () {
     return "red";
   }
 
-  // function to create a ball
+  // Function to create a ball
   function createBall(x, y, radius) {
-    const area = Math.PI * radius ** 2;
-    const density = mass / area;
-    const mass = 0.1 * area;
+    const density = 0.001 * radius ** 2;
 
     const ball = Bodies.circle(x, y, radius, {
       inertia: Infinity,
       density: density,
-      mass: mass,
       restitution: 0,
       friction: 0.001,
       frictionAir: 0,
-      render: {
-        fillStyle: getColor(radius),
-      },
-      collisionFilter: {
-        mask: defaultCategory,
-      },
+      render: { fillStyle: getColor(radius) },
+      collisionFilter: { mask: defaultCategory },
     });
 
-    // set initial position and angle to prevent initial movement
     Matter.Body.setPosition(ball, { x: x, y: y });
     Matter.Body.setAngle(ball, 0);
 
     return ball;
   }
 
-  // Flag to prevent combining during delay
   let combining = false;
 
-  // function to combine two balls
+  // Function to combine two balls
   function combineBalls(ballA, ballB) {
-    if (combining) {
-      return; // Exit if already combining
-    }
+    if (combining) return;
 
-    combining = true; // Set combining flag
+    combining = true;
 
-    const combinedRadius = ballA.circleRadius + 15; // increase radius by 15
+    const combinedRadius = ballA.circleRadius + 15;
     if (combinedRadius >= 110) {
       Composite.remove(engine.world, ballA);
       Composite.remove(engine.world, ballB);
-      combining = false; // Reset flag
+      combining = false;
       return;
     }
 
-    // Temporarily change render style to white
     ballA.render.fillStyle = "white";
     ballB.render.fillStyle = "white";
 
     setTimeout(() => {
-      // Reset render style after 0.1s delay
       ballA.render.fillStyle = getColor(ballA.circleRadius);
       ballB.render.fillStyle = getColor(ballB.circleRadius);
 
-      // Calculate midpoint
       const midX = (ballA.position.x + ballB.position.x) / 2;
       const midY = (ballA.position.y + ballB.position.y) / 2;
 
@@ -166,11 +158,11 @@ document.addEventListener("DOMContentLoaded", function () {
       Composite.remove(engine.world, ballB);
       Composite.add(engine.world, combinedBall);
 
-      combining = false; // Reset flag after combining
-    }, 100); // 100 milliseconds (0.1s) delay
+      combining = false;
+    }, 100);
   }
 
-  // collision event listener
+  // Collision event listener
   Events.on(engine, "collisionStart", function (event) {
     const pairs = event.pairs;
 
