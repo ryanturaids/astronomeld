@@ -4,9 +4,8 @@ document.addEventListener("DOMContentLoaded", function () {
     Runner = Matter.Runner,
     Bodies = Matter.Bodies,
     Composite = Matter.Composite,
-    Mouse = Matter.Mouse,
-    MouseConstraint = Matter.MouseConstraint,
-    Events = Matter.Events;
+    Events = Matter.Events,
+    Mouse = Matter.Mouse;
 
   const canvasContainer = document.getElementById("canvas");
 
@@ -30,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Collision categories
   const defaultCategory = 0x0001;
   const topBoxCategory = 0x0002;
+  const previewCategory = 0x0004; // New category for the preview ball
 
   // Create the box with an open top and a top box for spawning balls
   const boxLeft = Bodies.rectangle(0, 400, 20, 400, {
@@ -63,21 +63,25 @@ document.addEventListener("DOMContentLoaded", function () {
   const runner = Runner.create();
   Runner.run(runner, engine);
 
-  // Add mouse and touch control
+  // Add mouse control for clicking to spawn a ball
   const mouse = Mouse.create(render.canvas);
-  const mouseConstraint = MouseConstraint.create(engine, {
-    mouse: mouse,
-  });
-  Composite.add(engine.world, mouseConstraint);
-  render.mouse = mouse;
 
   // Handle both mouse click and touch events to spawn a ball
+  let canSpawn = true;
+  let previewBall = createPreviewBall();
+
   function spawnBall(x, y) {
-    if (y <= 100) {
-      const sizes = [20, 35, 50];
-      const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
-      const newBall = createBall(x, y, randomSize);
+    if (canSpawn && y <= 100) {
+      canSpawn = false; // Set the flag to false
+      const newBall = createBall(x, y, previewBall.circleRadius);
       Composite.add(engine.world, newBall);
+
+      // Update preview ball size
+      updatePreviewBallSize();
+
+      setTimeout(() => {
+        canSpawn = true; // Reset the flag after 1 second
+      }, 1000);
     }
   }
 
@@ -126,6 +130,33 @@ document.addEventListener("DOMContentLoaded", function () {
     Matter.Body.setAngle(ball, 0);
 
     return ball;
+  }
+
+  // Function to create a preview ball
+  function createPreviewBall() {
+    const sizes = [20, 35, 50];
+    const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
+    const previewBall = Bodies.circle(150, 25, randomSize, {
+      isStatic: true,
+      render: { fillStyle: getColor(randomSize) },
+      collisionFilter: { category: previewCategory, mask: ~defaultCategory }, // Ensure it doesn't collide with other balls
+    });
+
+    Composite.add(engine.world, previewBall);
+    return previewBall;
+  }
+
+  // Function to update preview ball size
+  function updatePreviewBallSize() {
+    const sizes = [20, 35, 50];
+    const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
+    Matter.Body.scale(
+      previewBall,
+      randomSize / previewBall.circleRadius,
+      randomSize / previewBall.circleRadius
+    );
+    previewBall.circleRadius = randomSize;
+    previewBall.render.fillStyle = getColor(randomSize);
   }
 
   let combining = false;
@@ -180,4 +211,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   });
+
+  // Initial update of the preview ball size
+  updatePreviewBallSize();
 });
