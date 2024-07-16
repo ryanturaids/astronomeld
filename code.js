@@ -12,8 +12,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Create an engine
   const engine = Engine.create();
-  engine.positionIterations = 30;
-  engine.velocityIterations = 30;
+  engine.positionIterations = 100;
+  engine.velocityIterations = 100;
 
   // Create a renderer
   const render = Render.create({
