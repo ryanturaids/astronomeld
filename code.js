@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Create an engine
   const engine = Engine.create();
-  engine.positionIterations = 100;
+  engine.positionIterations = 500;
   engine.velocityIterations = 100;
 
   // Create a renderer
@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
       height: 600,
       background: "#222",
       wireframes: false,
+      showAngleIndicator: false,
     },
   });
 
@@ -35,16 +36,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const boxLeft = Bodies.rectangle(0, 400, 20, 400, {
     isStatic: true,
     render: { fillStyle: "gray" },
+    friction: 1, // Higher friction for rolling
   });
 
   const boxRight = Bodies.rectangle(300, 400, 20, 400, {
     isStatic: true,
     render: { fillStyle: "gray" },
+    friction: 1, // Higher friction for rolling
   });
 
   const boxBottom = Bodies.rectangle(150, 600, 300, 20, {
     isStatic: true,
     render: { fillStyle: "gray" },
+    friction: 1, // Higher friction for rolling
   });
 
   const topBoxTop = Bodies.rectangle(150, 50, 300, 100, {
@@ -102,27 +106,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Function to get color based on size
   function getColor(radius) {
-    if (radius <= 20) return "red";
-    if (radius <= 35) return "orange";
-    if (radius <= 50) return "yellow";
-    if (radius <= 65) return "green";
-    if (radius <= 80) return "blue";
-    if (radius <= 85) return "purple";
-    if (radius <= 100) return "pink";
+    if (radius <= 10) return "#EBEBEB";
+    if (radius <= 20) return "#B5B5B5";
+    if (radius <= 30) return "#EB5E28";
+    if (radius <= 40) return "#F0EAD2";
+    if (radius <= 50) return "#A1C181";
+    if (radius <= 60) return "#277DA1";
+    if (radius <= 70) return "#A3CEF1";
+    if (radius <= 80) return "#C6AC8F";
+    if (radius <= 90) return "#B36A5E";
+    if (radius <= 100) return "#FCCA46";
     return "red";
   }
 
   // Function to create a ball
   function createBall(x, y, radius) {
-    const density = 0.001 * radius ** 2;
+    const area = Math.PI * radius ** 2;
+    const mass = 0.05 * area;
+    const density = mass / area; // Adjust based on size
 
     const ball = Bodies.circle(x, y, radius, {
-      inertia: Infinity,
       density: density,
-      restitution: 0,
-      friction: 0.001,
-      frictionAir: 0,
-      render: { fillStyle: getColor(radius) },
+      mass: mass,
+      restitution: 0, // Less bouncy
+      friction: 1, // Higher friction for rolling
+      frictionStatic: 1, // Higher static friction
+      // frictionAir: 0.001, // Minimal air resistance for realistic motion
+      render: {
+        fillStyle: getColor(radius),
+        lineWidth: 1, // Set the stroke width
+      },
       collisionFilter: { mask: defaultCategory },
     });
 
@@ -134,7 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Function to create a preview ball
   function createPreviewBall() {
-    const sizes = [20, 35, 50];
+    const sizes = [10, 20, 30];
     const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
     const previewBall = Bodies.circle(150, 25, randomSize, {
       isStatic: true,
@@ -148,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Function to update preview ball size
   function updatePreviewBallSize() {
-    const sizes = [20, 35, 50];
+    const sizes = [10, 20, 30];
     const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
     Matter.Body.scale(
       previewBall,
@@ -167,7 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     combining = true;
 
-    const combinedRadius = ballA.circleRadius + 15;
+    const combinedRadius = ballA.circleRadius + 10;
     if (combinedRadius >= 110) {
       Composite.remove(engine.world, ballA);
       Composite.remove(engine.world, ballB);
@@ -182,10 +195,18 @@ document.addEventListener("DOMContentLoaded", function () {
       ballA.render.fillStyle = getColor(ballA.circleRadius);
       ballB.render.fillStyle = getColor(ballB.circleRadius);
 
-      const midX = (ballA.position.x + ballB.position.x) / 2;
-      const midY = (ballA.position.y + ballB.position.y) / 2;
+      // Determine which ball is newer
+      const newerBall = ballA.id > ballB.id ? ballA : ballB;
+      const newerBallPosition = {
+        x: newerBall.position.x,
+        y: newerBall.position.y,
+      };
 
-      const combinedBall = createBall(midX, midY, combinedRadius);
+      const combinedBall = createBall(
+        newerBallPosition.x,
+        newerBallPosition.y,
+        combinedRadius
+      );
 
       Composite.remove(engine.world, ballA);
       Composite.remove(engine.world, ballB);
