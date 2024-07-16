@@ -102,19 +102,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // function to create a ball
   function createBall(x, y, radius) {
-    const density = 0.001 * radius ** 2; // increase density with radius
+    const area = Math.PI * radius ** 2;
+    const density = mass / area;
+    const mass = 0.1 * area;
 
     const ball = Bodies.circle(x, y, radius, {
-      inertia: Infinity, // make inertia infinite for stability
+      inertia: Infinity,
       density: density,
+      mass: mass,
       restitution: 0,
-      friction: 0.001, // higher friction for stability
+      friction: 0.001,
       frictionAir: 0,
       render: {
         fillStyle: getColor(radius),
       },
       collisionFilter: {
-        mask: defaultCategory, // avoid collisions with top box
+        mask: defaultCategory,
       },
     });
 
