@@ -53,10 +53,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // run the engine
   Runner.run(runner, engine);
 
-  // add mouse control
+  // add mouse and touch control
   const mouse = Mouse.create(render.canvas);
+  const touch = Matter.Touch.create(render);
   const mouseConstraint = MouseConstraint.create(engine, {
     mouse: mouse,
+    touch: touch,
   });
   Composite.add(engine.world, mouseConstraint);
   render.mouse = mouse;
@@ -98,10 +100,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return ball;
   }
 
-  // add event listener for clicking to spawn a ball
-  render.canvas.addEventListener("mousedown", function (event) {
-    const x = event.offsetX;
-    const y = event.offsetY;
+  // function to handle spawn ball action
+  function spawnBall(x, y) {
     if (y <= 100) {
       // check if the click is inside the top box area
       const sizes = [20, 35, 50];
@@ -109,6 +109,22 @@ document.addEventListener("DOMContentLoaded", function () {
       const newBall = createBall(x, y, randomSize);
       Composite.add(engine.world, newBall);
     }
+  }
+
+  // add event listener for clicking to spawn a ball
+  render.canvas.addEventListener("mousedown", function (event) {
+    const x = event.offsetX || event.touches[0].clientX;
+    const y = event.offsetY || event.touches[0].clientY;
+    spawnBall(x, y);
+  });
+
+  // add event listener for touch to spawn a ball
+  render.canvas.addEventListener("touchstart", function (event) {
+    event.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
+    const touch = event.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    spawnBall(x, y);
   });
 
   // Flag to prevent combining during delay
